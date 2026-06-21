@@ -1,79 +1,96 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "name": "Polymarket Rust SDK",
+  "description": "Documentation for polymarket-client — discovery, trading, websockets, and hybrid settlement on Polygon.",
   "theme": "luma",
   "colors": {
-    "primary": "#6366F1",
-    "light": "#818CF8",
-    "dark": "#4338CA"
+    "primary": "#1652F0",
+    "light": "#3B82F6",
+    "dark": "#0F172A"
   },
   "favicon": "/favicon.svg",
+  "appearance": {
+    "default": "light",
+    "strict": true
+  },
   "logo": {
     "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "dark": "/logo/dark.svg",
+    "href": "/"
   },
   "navigation": {
-    "tabs": [
+    "groups": [
       {
-        "tab": "Documentation",
-        "groups": [
+        "group": "Get Started",
+        "pages": [
+          "polymarket-sdk/introduction",
+          "polymarket-sdk/quickstart",
+          "polymarket-sdk/feature-flags"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "polymarket-sdk/authentication",
+          "polymarket-sdk/trading",
+          "polymarket-sdk/account-data",
+          "polymarket-sdk/websockets"
+        ]
+      },
+      {
+        "group": "Hybrid Pattern",
+        "pages": [
+          "polymarket-sdk/hybrid-architecture",
+          "polymarket-sdk/hybrid-server"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
+          "polymarket-sdk/errors"
+        ]
+      }
+    ],
+    "global": {
+      "anchors": []
+    }
+  },
+  "footer": {
+    "links": [
+      {
+        "header": "Documentation",
+        "items": [
           {
-            "group": "Get Started",
-            "pages": [
-              "polymarket-sdk/introduction",
-              "polymarket-sdk/quickstart",
-              "polymarket-sdk/feature-flags"
-            ]
+            "label": "Quickstart",
+            "href": "/polymarket-sdk/quickstart"
           },
           {
-            "group": "Guides",
-            "pages": [
-              "polymarket-sdk/authentication",
-              "polymarket-sdk/trading",
-              "polymarket-sdk/account-data",
-              "polymarket-sdk/websockets"
-            ]
+            "label": "Authentication",
+            "href": "/polymarket-sdk/authentication"
           },
           {
-            "group": "Hybrid Pattern",
-            "pages": [
-              "polymarket-sdk/hybrid-architecture",
-              "polymarket-sdk/hybrid-server"
-            ]
+            "label": "API reference",
+            "href": "https://docs.rs/polymarket-client/latest/polymarket_client/"
+          }
+        ]
+      },
+      {
+        "header": "Project",
+        "items": [
+          {
+            "label": "GitHub",
+            "href": "https://github.com/defidevrel/polymarket-rs-sdk"
           },
           {
-            "group": "Reference",
-            "pages": [
-              "polymarket-sdk/errors"
-            ]
+            "label": "crates.io",
+            "href": "https://crates.io/crates/polymarket-client"
+          },
+          {
+            "label": "Issues",
+            "href": "https://github.com/defidevrel/polymarket-rs-sdk/issues"
           }
         ]
       }
     ]
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "GitHub",
-        "href": "https://github.com/defidevrel/polymarket-rs-sdk"
-      },
-      {
-        "label": "crates.io",
-        "href": "https://crates.io/crates/polymarket-client"
-      },
-      {
-        "label": "API Docs",
-        "href": "https://docs.rs/polymarket-client/latest/polymarket_client/"
-      }
-    ],
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/defidevrel/polymarket-rs-sdk"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/defidevrel/polymarket-rs-sdk"
-    }
   }
 }
