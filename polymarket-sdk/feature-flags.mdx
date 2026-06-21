@@ -1,0 +1,76 @@
+---
+title: "Feature Flags: Configure polymarket-client Cargo Features"
+sidebarTitle: "Feature Flags"
+description: "Configure polymarket-client's Cargo features to enable only what you need: account data, websockets, or full secure trading with SecureClient."
+---
+
+`polymarket-client` uses Cargo's feature system to keep compile times short and dependency trees lean. By default you get everything needed for unauthenticated market discovery and order book reads, and you opt in to heavier capabilities — account data, websocket connections, and authenticated trading — only when your project actually needs them.
+
+<Tip>
+  The `secure` feature is a complete superset of both `account` and `websockets`. Enabling `secure` is equivalent to enabling all three at once, so you never need to list them individually when you want full trading access.
+</Tip>
+
+## Available features
+
+| Feature | What it enables |
+|---|---|
+| *(default, no feature flag)* | HTTP discovery via Gamma and CLOB market data: `PublicClient::list_markets`, `fetch_order_book`, midpoints, and events |
+| `account` | Data API read methods on `PublicClient`: positions, portfolio value, and activity history |
+| `websockets` | Realtime `subscribe()` method on `PublicClient` for market, user, RTDS, and sports channels |
+| `secure` | Everything in `account` and `websockets`, plus `SecureClient` for authenticated order placement, cancellation, and CTF settlement |
+
+## Recommended setups
+
+Choose the configuration that matches your project's role on the platform.
+
+### Read-only bot or indexer
+
+If you are building a data pipeline, arbitrage scanner, or any tool that only reads public market state, the default feature set is all you need. No extra dependencies are pulled in:
+
+```toml
+[dependencies]
+polymarket-client = "0.1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+### Market maker or trader
+
+When you need to place orders, cancel positions, or interact with the CTF contract, enable `secure`. This also gives you account reads and websockets so you can monitor your fills in realtime:
+
+```toml
+[dependencies]
+polymarket-client = { version = "0.1", features = ["secure"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+### Websockets only
+
+If you want to stream live price and trade events without placing orders — for example, to power a dashboard or feed a time-series database — enable only `websockets`:
+
+```toml
+[dependencies]
+polymarket-client = { version = "0.1", features = ["websockets"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+### Account reads without websockets
+
+To query positions and portfolio data via the Data API but skip the websocket dependency, enable only `account`:
+
+```toml
+[dependencies]
+polymarket-client = { version = "0.1", features = ["account"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+## Mixing features
+
+You can combine `account` and `websockets` explicitly if you want both but do not need `SecureClient`:
+
+```toml
+[dependencies]
+polymarket-client = { version = "0.1", features = ["account", "websockets"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+This is functionally equivalent to `secure` minus the authenticated trading surface. Prefer `secure` unless you have a specific reason to exclude `SecureClient` from your build.

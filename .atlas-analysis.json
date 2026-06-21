@@ -1,0 +1,73 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Polymarket Rust SDK",
+  "projectDescription": "An open-source Rust SDK (polymarket-client) for building on Polymarket — covering market discovery, order books, authenticated trading, realtime websockets, and Polygon settlement.",
+  "theme": "luma",
+  "primaryColor": "#6366F1",
+  "lightColor": "#818CF8",
+  "darkColor": "#4338CA",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "polymarket-sdk/introduction",
+              "polymarket-sdk/quickstart",
+              "polymarket-sdk/feature-flags"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "polymarket-sdk/authentication",
+              "polymarket-sdk/trading",
+              "polymarket-sdk/account-data",
+              "polymarket-sdk/websockets"
+            ]
+          },
+          {
+            "group": "Hybrid Pattern",
+            "pages": [
+              "polymarket-sdk/hybrid-architecture",
+              "polymarket-sdk/hybrid-server"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "polymarket-sdk/errors"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Market discovery via Gamma API (list and fetch markets/events)",
+    "Order book and midpoint data via CLOB API",
+    "Authenticated limit/market order trading with SecureClient",
+    "Account reads — positions, portfolio, activity via Data API",
+    "Realtime websockets for market, user, RTDS, and sports channels",
+    "Hybrid adapter pattern for Solana (or any chain) front-end with Polygon settlement",
+    "Cargo feature flags for lean compile-time configuration",
+    "Typed error enums with per-action guard helpers"
+  ],
+  "publicApiSurface": [
+    "PublicClient::new(Environment)",
+    "PublicClient::list_markets(ListMarketsRequest)",
+    "PublicClient::fetch_order_book(FetchOrderBookRequest)",
+    "PublicClient::list_positions(ListPositionsRequest)",
+    "PublicClient::subscribe(Vec<SubscriptionSpec>)",
+    "SecureClient::builder().private_key().build()",
+    "SecureClient::setup_trading_approvals()",
+    "SecureClient::place_limit_order(PlaceLimitOrderRequest)",
+    "SecureClient::list_open_orders(ListOpenOrdersRequest)",
+    "SecureClient::cancel_order(CancelOrderRequest)",
+    "SecureClient::split_position / merge_positions / redeem_positions",
+    "SubscriptionSpec::{Market, User, Sports, Comments, CryptoPricesBinance, CryptoPricesChainlink}",
+    "Cargo features: account, websockets, secure"
+  ]
+}

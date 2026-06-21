@@ -1,0 +1,87 @@
+---
+title: "polymarket-client: Open-Source Rust SDK for Polymarket"
+sidebarTitle: "Introduction"
+description: "polymarket-client wraps Gamma, CLOB, Data API, and websockets into one typed Rust SDK for building on Polymarket's prediction markets."
+---
+
+**polymarket-client** is an open-source Rust SDK that gives you a single, strongly typed interface to everything Polymarket exposes: market discovery through Gamma, order books and trading through CLOB, account data through the Data API, and realtime price feeds through websockets. Settlement runs on **Polygon** (chain ID 137) using USDC collateral and CTF positions, so you get the full prediction-market stack without wiring together multiple raw HTTP clients yourself.
+
+<Warning>
+  v0.1 is early days. If you run into missing endpoints, unexpected types, or any rough edges, please open an issue on [GitHub](https://github.com/defidevrel/polymarket-rs-sdk/issues) so they can be tracked and fixed.
+</Warning>
+
+## What the SDK does
+
+The SDK covers every major surface area of the Polymarket platform:
+
+- **Discovery** — list and search markets and events via the Gamma API
+- **Market data** — fetch live order books and midpoint prices via CLOB
+- **Trading** — place and manage authenticated limit and market orders with `SecureClient`
+- **Account reads** — query positions, portfolio value, and activity history via the Data API
+- **Websockets** — subscribe to market, user, RTDS, and sports channels through a unified `subscribe()` call
+- **Hybrid pattern** — an HTTP adapter example that lets a Solana (or any) front-end drive Polygon settlement
+
+## Crate layout
+
+The SDK is split into three focused crates so you can depend on only the layer you need:
+
+| Crate | Role |
+|---|---|
+| `polymarket-types` | Branded primitive IDs (`MarketId`, `TokenId`) and Polygon address types |
+| `polymarket-bindings` | Raw API deserialization structs and normalized domain models |
+| `polymarket-client` | `PublicClient`, `SecureClient`, pagination helpers, and error types |
+
+Most users depend only on `polymarket-client`, which re-exports the types and bindings you need day-to-day.
+
+## Install
+
+Add `polymarket-client` and Tokio to your `Cargo.toml`. The default feature set gives you HTTP discovery and CLOB market data with no extras compiled in:
+
+```toml
+[dependencies]
+polymarket-client = "0.1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+When you are ready to place orders, subscribe to websocket streams, or read account data, enable the `secure` feature. It is a superset that bundles everything in one flag:
+
+```toml
+[dependencies]
+polymarket-client = { version = "0.1", features = ["secure"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+See [Feature Flags](/polymarket-sdk/feature-flags) for a full breakdown of individual flags and recommended setups per use case.
+
+## Main client types
+
+| Type | When to use it |
+|---|---|
+| `PublicClient` | Unauthenticated reads: markets, events, order books, midpoints |
+| `SecureClient` | Authenticated writes and reads: orders, cancellations, account positions (`secure` feature required) |
+| `Environment` | Selects production or staging base URLs; pass it when constructing either client |
+| `ListMarketsRequest` | Paginated query builder for Gamma market discovery |
+| `FetchOrderBookRequest` | Single-book fetch by `TokenId` |
+
+## API reference
+
+Full Rustdoc for every public type and method is published automatically on docs.rs:
+
+[docs.rs/polymarket\_client](https://docs.rs/polymarket-client/latest/polymarket_client/)
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/polymarket-sdk/quickstart">
+    List live markets and fetch an order book in under five minutes
+  </Card>
+  <Card title="Feature Flags" icon="toggle-on" href="/polymarket-sdk/feature-flags">
+    Enable only the features your project needs
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/defidevrel/polymarket-rs-sdk">
+    Browse the source code and open issues
+  </Card>
+  <Card title="crates.io" icon="box" href="https://crates.io/crates/polymarket-client">
+    View the published crate and release history
+  </Card>
+</CardGroup>

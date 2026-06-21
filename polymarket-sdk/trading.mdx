@@ -1,0 +1,96 @@
+---
+title: "Place Limit Orders and Manage Trades on Polymarket"
+sidebarTitle: "Trading"
+description: "Use SecureClient to place limit orders, list and cancel open orders, and settle CTF positions on Polygon using the polymarket-client Rust SDK."
+---
+
+Once your `SecureClient` is authenticated, you can submit limit orders to the CLOB exchange, inspect your open order book, cancel individual orders, and interact with the Conditional Token Framework (CTF) contracts to convert between USDC and outcome tokens. This page covers each of those operations in order, from placing your first order through on-chain settlement.
+
+<Note>
+  All trading operations require the `secure` feature flag and a Polygon wallet funded with USDC. Add `features = ["secure"]` to your `Cargo.toml` dependency entry and ensure your wallet holds enough USDC to cover the order size plus gas.
+</Note>
+
+## Place a limit order
+
+Use `place_limit_order` with a `PlaceLimitOrderRequest` to submit a resting limit order to the CLOB. The SDK signs the order payload with your HMAC credentials before sending it:
+
+```rust
+use polymarket_client::{OrderSide, PlaceLimitOrderRequest, SecureClient};
+
+let response = secure
+    .place_limit_order(PlaceLimitOrderRequest {
+        token_id: "TOKEN_ID".into(),
+        side: OrderSide::Buy,
+        price: 0.50,
+        size: 10.0,
+        expiration: None,
+        post_only: false,
+    })
+    .await?;
+
+println!("order_id: {:?}", response.order_id);
+```
+
+### `PlaceLimitOrderRequest` fields
+
+| Field | Type | Description |
+|---|---|---|
+| `token_id` | `String` | The outcome token identifier for the market side you want to trade. |
+| `side` | `OrderSide` | `OrderSide::Buy` or `OrderSide::Sell`. |
+| `price` | `f64` | Limit price expressed as a probability between `0.0` and `1.0` (e.g. `0.50` = 50¢). |
+| `size` | `f64` | Number of outcome token shares to buy or sell. |
+| `expiration` | `Option<u64>` | Unix timestamp after which the order is automatically cancelled. Pass `None` for a good-till-cancelled order. |
+| `post_only` | `bool` | When `true`, the order is rejected rather than matched if it would cross the spread immediately. |
+
+## List open orders
+
+Retrieve all your resting orders across all markets with `list_open_orders`. Pass `ListOpenOrdersRequest::default()` to fetch everything, or populate its fields to filter by market or asset:
+
+```rust
+use polymarket_client::ListOpenOrdersRequest;
+
+let orders = secure
+    .list_open_orders(ListOpenOrdersRequest::default())
+    .await?;
+```
+
+## Cancel an order
+
+Pass the order ID returned by `place_limit_order` to `cancel_order` to remove a resting order from the book:
+
+```rust
+use polymarket_client::CancelOrderRequest;
+
+secure
+    .cancel_order(CancelOrderRequest {
+        order_id: "ORDER_ID".into(),
+    })
+    .await?;
+```
+
+The call returns when the exchange has acknowledged the cancellation. Orders that have already been fully matched cannot be cancelled.
+
+## CTF wallet operations
+
+The Conditional Token Framework (CTF) is the smart contract system that backs every Polymarket outcome token. `SecureClient` exposes three on-chain operations that let you move value in and out of positions:
+
+- **`split_position`** — Converts USDC into a full set of outcome tokens for a market. After splitting, you hold one token for each possible outcome and can trade or hold them individually.
+- **`merge_positions`** — The reverse of a split. Combines a complete set of outcome tokens back into USDC at face value, as long as the market has not yet resolved.
+- **`redeem_positions`** — After a market resolves, exchanges your winning outcome tokens for USDC at a 1:1 rate. Losing tokens become worthless.
+
+All three operations submit Polygon transactions and require the RPC endpoint configured in `Environment::production()`.
+
+## Run the trading example
+
+The repository ships a self-contained trading example. Set your private key, then run:
+
+```bash
+POLYMARKET_PRIVATE_KEY=0x… cargo run -p polymarket-client --example trading --features secure
+```
+
+The example reads the market, prints current open orders, and exits without placing anything. To have it submit a small demo order as well, set the extra flag:
+
+```bash
+POLYMARKET_PRIVATE_KEY=0x… POLYMARKET_PLACE_ORDER=1 \
+  cargo run -p polymarket-client --example trading --features secure
+```

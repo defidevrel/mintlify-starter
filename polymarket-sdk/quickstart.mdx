@@ -1,0 +1,128 @@
+---
+title: "Get Started with polymarket-client Rust SDK in 5 Minutes"
+sidebarTitle: "Quickstart"
+description: "Learn how to list live Polymarket markets and fetch order book data with polymarket-client in under five minutes using Rust and Tokio."
+---
+
+The fastest way to get value out of `polymarket-client` is to hit the Gamma and CLOB APIs without any authentication. In this guide you will set up the dependency, list open markets, and pull a live order book — all before you need to touch private keys or feature flags. The whole thing takes fewer than five minutes on an existing Rust project.
+
+<Steps>
+
+  <Step title="Check your prerequisites">
+    You need a recent stable Rust toolchain and the Tokio async runtime. Run the following to make sure you are on Rust 1.88 or newer:
+
+    ```bash
+    rustup update stable
+    rustc --version
+    ```
+
+    Tokio is added as a direct dependency in the next step — you do not need to install anything separately.
+  </Step>
+
+  <Step title="Add the dependency">
+    Open your project's `Cargo.toml` and add `polymarket-client` along with Tokio. The default feature set is enough for all public, unauthenticated reads:
+
+    <CodeGroup>
+
+    ```toml Read-only (default)
+    [dependencies]
+    polymarket-client = "0.1"
+    tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+    ```
+
+    ```toml Trading + websockets
+    [dependencies]
+    polymarket-client = { version = "0.1", features = ["secure"] }
+    tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+    ```
+
+    </CodeGroup>
+
+    Start with the default unless you already know you need order placement or realtime streams. You can add the `secure` feature at any point without changing your existing code.
+  </Step>
+
+  <Step title="List open markets">
+    Create a binary (or paste into `main.rs`) and use `PublicClient` to page through open markets. The client is constructed with `Environment::production()`, which points at the live Polymarket endpoints:
+
+    ```rust
+    use polymarket_client::{Environment, ListMarketsRequest, PublicClient};
+
+    #[tokio::main]
+    async fn main() -> Result<(), polymarket_client::Error> {
+        let client = PublicClient::new(Environment::production());
+
+        let mut markets = client.list_markets(ListMarketsRequest {
+            closed: Some(false),
+            page_size: Some(5),
+            ..Default::default()
+        })?;
+
+        let page = markets.first_page().await?;
+        for market in &page.items {
+            println!(
+                "{} — {}",
+                market.id,
+                market.question.as_deref().unwrap_or("")
+            );
+        }
+
+        Ok(())
+    }
+    ```
+
+    `list_markets` returns a lazy paginator. Calling `.first_page()` fires the first HTTP request and gives you a `Page` whose `.items` field holds the deserialized `Market` structs. You can call `.next_page()` in a loop to walk forward through all results.
+  </Step>
+
+  <Step title="Fetch an order book">
+    To read live bids and asks for a specific outcome token, use `fetch_order_book` with the token's CLOB ID. You can find a token ID in the `tokens` array of any market returned by `list_markets`:
+
+    ```rust
+    use polymarket_client::{Environment, FetchOrderBookRequest, PublicClient};
+
+    #[tokio::main]
+    async fn main() -> Result<(), polymarket_client::Error> {
+        let client = PublicClient::new(Environment::production());
+
+        let book = client
+            .fetch_order_book(FetchOrderBookRequest {
+                token_id: "YOUR_YES_TOKEN_ID".into(),
+            })
+            .await?;
+
+        println!("bids: {}, asks: {}", book.bids.len(), book.asks.len());
+
+        Ok(())
+    }
+    ```
+
+    Replace `"YOUR_YES_TOKEN_ID"` with a real `TokenId` string from the previous step. The returned `OrderBook` contains typed `Vec<Level>` fields for bids and asks, with price and size already parsed into Rust decimals.
+  </Step>
+
+  <Step title="Run the bundled example">
+    The [GitHub repository](https://github.com/defidevrel/polymarket-rs-sdk) ships a `quickstart` example that demonstrates both of the above in a single runnable file. Clone the repo and run it directly with Cargo:
+
+    ```bash
+    cargo run -p polymarket-client --example quickstart
+    ```
+
+    You should see a short list of open market questions and their IDs printed to stdout. No environment variables or API keys are required for this example.
+  </Step>
+
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Feature Flags" icon="toggle-on" href="/polymarket-sdk/feature-flags">
+    Learn which Cargo features to enable for your use case
+  </Card>
+  <Card title="Authentication" icon="key" href="/polymarket-sdk/authentication">
+    Configure SecureClient with your private key and API credentials
+  </Card>
+  <Card title="Trading" icon="arrow-right-arrow-left" href="/polymarket-sdk/trading">
+    Place limit and market orders and manage open positions
+  </Card>
+  <Card title="Websockets" icon="bolt" href="/polymarket-sdk/websockets">
+    Subscribe to realtime market and user event streams
+  </Card>
+</CardGroup>

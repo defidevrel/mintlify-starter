@@ -1,0 +1,53 @@
+---
+title: "Hybrid Architecture: Solana to Polymarket on Polygon"
+sidebarTitle: "Architecture"
+description: "polymarket-client acts as a settlement adapter so any Solana or front-end app can access Polymarket liquidity with Polygon-based settlement."
+---
+
+Polymarket does not settle on Solana — all positions live on **Polygon** as CTF ERC-1155 tokens. If you are building a Solana-native application and want to tap into Polymarket's deep order book and battle-tested resolution system, you need a layer in between. `polymarket-client` fills that role: it acts as a **settlement adapter**, translating your Rust backend's calls into authenticated requests against Polymarket's CLOB, Gamma, and Data APIs, and letting Polygon handle all final settlement transparently to your users.
+
+## How the layers connect
+
+The architecture is a straight four-step chain. Your Solana app handles everything user-facing — wallets, signatures, and identity — while your Rust backend delegates market interaction entirely to `polymarket-client`, which talks to Polymarket's APIs, and Polygon executes the final on-chain settlement.
+
+```
+Solana app  (wallet UX, user identity, social layer)
+        │
+        ▼
+Your Rust backend  (polymarket-client)
+        │
+        ▼
+Polymarket APIs  (CLOB · Gamma · Data API)
+        │
+        ▼
+Polygon settlement  (CTF ERC-1155 positions)
+```
+
+Each arrow represents a clean responsibility boundary. You own everything above the Rust backend; the SDK and Polymarket own everything below it.
+
+## Responsibility split
+
+Understanding what you build versus what `polymarket-client` and Polymarket provide keeps your integration focused and avoids duplicating infrastructure that already exists.
+
+| Your layer | SDK / Polymarket |
+|---|---|
+| Solana wallet UX and key management | Polygon wallet + `SecureClient` signing |
+| User identity mapping (Solana pubkey → Polygon address) | `list_markets`, `fetch_order_book`, websocket feeds |
+| USDC bridge from Solana to Polygon | CTF split, merge, and redeem lifecycle |
+| Auth — verify Solana signatures on your server | Authenticated order execution on the CLOB |
+
+<Info>
+Pass the `X-Solana-Address` header on every order request to correlate a Solana user's public key with a Polygon fill. The hybrid server example logs this header for you — replace that logging with real signature verification before going to production.
+</Info>
+
+## Why use this pattern
+
+There are three concrete reasons to reach for this architecture rather than building your own order book or AMM on Solana:
+
+- **Liquidity** — You get Polymarket's existing order book depth on day one, instead of bootstrapping a new Solana AMM from scratch.
+- **Resolution** — Market resolution is handled by UMA and Polymarket's process, not a custom oracle you have to maintain.
+- **Unified Rust service** — One backend crate serves bots, market-making strategies, and hybrid front-end apps without context switching between languages or runtimes.
+
+## Next step
+
+See the [Hybrid Server](/polymarket-sdk/hybrid-server) reference for a working Axum HTTP adapter that exposes `GET /v1/markets`, `GET /v1/book/{token_id}`, and `POST /v1/orders` — ready to run locally in minutes.

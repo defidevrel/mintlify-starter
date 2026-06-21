@@ -1,0 +1,89 @@
+---
+title: "Authenticate with the Polymarket Rust SDK: SecureClient"
+sidebarTitle: "Authentication"
+description: "Set up your Polygon wallet and build a SecureClient for authenticated trading. The SDK derives CLOB API credentials automatically from your private key."
+---
+
+Polymarket trading is built on an **EVM wallet running on the Polygon network**. You supply a single private key, and the SDK handles everything else — deriving your CLOB API key, secret, and passphrase so you never have to manage those values by hand. This page walks you through setting the required environment variable, constructing a `SecureClient`, and understanding the three-layer auth model that protects your orders and on-chain funds.
+
+## Set the environment variable
+
+The SDK reads your private key from the `POLYMARKET_PRIVATE_KEY` environment variable. Export it in your shell before running any example or binary:
+
+```bash
+export POLYMARKET_PRIVATE_KEY=0x...
+```
+
+<Warning>
+  Never commit `POLYMARKET_PRIVATE_KEY` to source control. Store it in a secrets manager or a `.env` file that is excluded from your repository via `.gitignore`.
+</Warning>
+
+## Build a `SecureClient`
+
+`SecureClient` is the authenticated entry point for all trading and account operations. Call `.build().await` and the SDK will sign the derivation request on your behalf:
+
+```rust
+use polymarket_client::{Environment, SecureClient, PRIVATE_KEY_VAR};
+
+let secure = SecureClient::builder()
+    .environment(Environment::production())
+    .private_key(std::env::var(PRIVATE_KEY_VAR)?)
+    .build()
+    .await?;
+
+println!("wallet: {}", secure.wallet());
+println!("api key: {}", secure.credentials().key);
+
+secure.setup_trading_approvals().await?;
+```
+
+`setup_trading_approvals` submits the one-time on-chain approval transactions that allow the CLOB exchange to settle your orders. You only need to call this once per wallet.
+
+## How authentication works
+
+The SDK operates across three distinct layers, each with its own signing mechanism:
+
+<Steps>
+  <Step title="L1 — API key derivation">
+    When you call `.build()`, the SDK performs an EIP-712 signature with your private key to derive — or retrieve — a CLOB API credential set (key, secret, and passphrase). This happens once and does not require a blockchain transaction.
+  </Step>
+  <Step title="L2 — HMAC-signed REST requests">
+    Every authenticated REST call (placing orders, reading account data) is signed with HMAC using your derived API credentials. Your private key is never sent over the wire.
+  </Step>
+  <Step title="On-chain — CTF contract interactions">
+    Position splits, merges, and redemptions are submitted as Polygon transactions signed by your private key through the configured RPC endpoint.
+  </Step>
+</Steps>
+
+## Proxy and email wallets
+
+If your Polymarket account was created through the Magic (proxy) wallet flow — for example via email login — you need two extra builder options:
+
+```rust
+SecureClient::builder()
+    .environment(Environment::production())
+    .private_key(std::env::var(PRIVATE_KEY_VAR)?)
+    .funder(proxy_address)       // the address that funded the proxy
+    .signature_type(sig_type)    // wallet-specific signing mode
+    .build()
+    .await?;
+```
+
+- `.funder(proxy_address)` — sets the address that holds your USDC and outcome tokens, when it differs from the signing wallet.
+- `.signature_type(...)` — selects the EIP-712 signing variant that matches your wallet type.
+
+Refer to the [official rs-clob-client-v2 documentation](https://github.com/Polymarket/rs-clob-client-v2) for the full list of supported signature types.
+
+## Reuse credentials to skip re-derivation
+
+Deriving credentials requires an HTTPS round-trip on every `build()` call. In production you should persist the returned `ApiCredentials` and pass them back on subsequent starts:
+
+```rust
+SecureClient::builder()
+    .private_key(private_key)
+    .credentials(saved_credentials)
+    .build()
+    .await?;
+```
+
+When `.credentials(...)` is provided, the SDK skips the derivation request entirely and uses the cached values directly, reducing startup latency and avoiding unnecessary API calls.

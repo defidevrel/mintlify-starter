@@ -1,0 +1,79 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Polymarket Rust SDK",
+  "theme": "luma",
+  "colors": {
+    "primary": "#6366F1",
+    "light": "#818CF8",
+    "dark": "#4338CA"
+  },
+  "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "polymarket-sdk/introduction",
+              "polymarket-sdk/quickstart",
+              "polymarket-sdk/feature-flags"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "polymarket-sdk/authentication",
+              "polymarket-sdk/trading",
+              "polymarket-sdk/account-data",
+              "polymarket-sdk/websockets"
+            ]
+          },
+          {
+            "group": "Hybrid Pattern",
+            "pages": [
+              "polymarket-sdk/hybrid-architecture",
+              "polymarket-sdk/hybrid-server"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "polymarket-sdk/errors"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/defidevrel/polymarket-rs-sdk"
+      },
+      {
+        "label": "crates.io",
+        "href": "https://crates.io/crates/polymarket-client"
+      },
+      {
+        "label": "API Docs",
+        "href": "https://docs.rs/polymarket-client/latest/polymarket_client/"
+      }
+    ],
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/defidevrel/polymarket-rs-sdk"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/defidevrel/polymarket-rs-sdk"
+    }
+  }
+}

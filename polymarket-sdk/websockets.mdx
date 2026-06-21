@@ -1,0 +1,100 @@
+---
+title: "Real-Time Websocket Streams with polymarket-client"
+sidebarTitle: "Websockets"
+description: "Subscribe to live order book updates, user order events, sports scores, and RTDS feeds using the unified subscribe() API in polymarket-client."
+---
+
+Polymarket exposes a WebSocket server that pushes real-time updates for order books, your own order activity, sports scores, and RTDS data feeds. The `polymarket-client` SDK wraps all of these behind a single `subscribe()` call that returns an async stream — you iterate it with standard `futures::StreamExt` combinators and close it with a single method call when you are done.
+
+## Enable the `websockets` feature
+
+WebSocket support is gated behind the `websockets` feature flag. Add it to your `Cargo.toml`:
+
+```toml
+polymarket-client = { version = "0.1", features = ["websockets"] }
+```
+
+The `secure` feature bundle already includes `websockets`, so if you have `features = ["secure"]` you can skip this step.
+
+## Subscribe to the market channel
+
+The market channel streams live order book events, price updates, and last-trade data for one or more outcome tokens. You call `subscribe()` on `PublicClient`, passing a `Vec` of `SubscriptionSpec` values:
+
+```rust
+use futures::StreamExt as _;
+use polymarket_client::{
+    Environment, MarketSubscription, PublicClient, SubscriptionSpec,
+};
+
+let client = PublicClient::new(Environment::production());
+
+let mut handle = client.subscribe(vec![SubscriptionSpec::Market(MarketSubscription {
+    token_ids: vec!["TOKEN_ID".into()],
+    custom_feature_enabled: false,
+})])?;
+
+while let Some(event) = handle.next().await {
+    println!("{event:?}");
+}
+handle.close();
+```
+
+`handle` implements `futures::Stream`, so you can use `.next()`, `.take()`, `.filter_map()`, and the rest of the `StreamExt` API. Call `handle.close()` when you no longer need updates to cleanly shut down the underlying WebSocket connection.
+
+## Subscribe to the user channel
+
+The user channel delivers real-time events scoped to your own wallet — order placements, fills, and cancellations. Because the server must verify your identity before opening this channel, you must call `subscribe()` on a `SecureClient` rather than a `PublicClient`:
+
+<Note>
+  `User` subscriptions require a `SecureClient`. Calling `subscribe` with `SubscriptionSpec::User` on `PublicClient` will return an error at runtime.
+</Note>
+
+```rust
+use polymarket_client::{SubscriptionSpec, UserSubscription};
+
+let mut handle = secure.subscribe(vec![SubscriptionSpec::User(UserSubscription {
+    markets: vec![],
+})])?;
+
+while let Some(event) = handle.next().await {
+    println!("{event:?}");
+}
+handle.close();
+```
+
+Pass specific market condition IDs in `markets` to filter events to those markets, or leave the `Vec` empty to receive events for all your open activity.
+
+## Subscription types reference
+
+The `SubscriptionSpec` enum covers every channel the Polymarket WebSocket server exposes:
+
+| `SubscriptionSpec` variant | Channel | Data streamed |
+|---|---|---|
+| `Market(MarketSubscription)` | Market | Order book snapshots and deltas, mid-price updates, last trade price and size. |
+| `User(UserSubscription)` | User | Your order placements, fills, partial fills, and cancellations. Requires `SecureClient`. |
+| `Sports(...)` | Sports | Live scores and game-state updates for sports prediction markets. |
+| `Comments(...)` | RTDS Comments | Real-time discussion comments attached to markets. |
+| `CryptoPricesBinance(...)` | RTDS Crypto | Crypto price feed sourced from Binance. |
+| `CryptoPricesChainlink(...)` | RTDS Crypto | Crypto price feed sourced from Chainlink. |
+
+You can combine multiple `SubscriptionSpec` values in a single `subscribe()` call to multiplex several channels over one connection:
+
+```rust
+let mut handle = client.subscribe(vec![
+    SubscriptionSpec::Market(MarketSubscription {
+        token_ids: vec!["TOKEN_ID_A".into(), "TOKEN_ID_B".into()],
+        custom_feature_enabled: false,
+    }),
+    SubscriptionSpec::Sports(sports_sub),
+])?;
+```
+
+## Closing the stream
+
+Always call `handle.close()` when you are finished consuming events. This sends a clean close frame to the server and releases the underlying TCP connection:
+
+```rust
+handle.close();
+```
+
+Dropping the handle without calling `close()` will eventually time out on the server side, but calling `close()` explicitly is faster and avoids leaving stale connections open on the Polymarket WebSocket server.

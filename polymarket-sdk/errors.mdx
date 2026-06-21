@@ -1,0 +1,66 @@
+---
+title: "Error Types and Handling in the polymarket-client SDK"
+sidebarTitle: "Errors"
+description: "polymarket-client returns typed error enums for every action. Use is_error() guard methods to handle specific failures cleanly in your match expressions."
+---
+
+Every action in `polymarket-client` returns its own typed error enum rather than a single catch-all error type. This design means your `match` expressions can be precise: you distinguish a transient network blip from a bad request or a rate-limit response without inspecting string messages or downcasting. Each enum exposes an `is_error` associated function that you use as a match guard, keeping your error handling readable and exhaustive without boilerplate.
+
+## Matching with `is_error` guards
+
+The pattern is consistent across every public client method. Import the error type that corresponds to the action you are calling, then use it as a guard in your `match` arm:
+
+```rust
+use polymarket_client::{ListMarketsError, PublicClient};
+
+match client.list_markets(request) {
+    Ok(mut paginator) => {
+        // iterate over pages
+    }
+    Err(e) if ListMarketsError::is_error(&e) => {
+        // handle errors specific to list_markets
+        eprintln!("list_markets failed: {e}");
+    }
+    Err(e) => return Err(e.into()),
+}
+```
+
+The `is_error` guard matches only the variants that belong to `ListMarketsError`. Any error that falls outside that set — an infrastructure error you did not expect — propagates to the final arm, where you can log or convert it.
+
+<Tip>
+Use `is_error` guards to handle the specific failures you care about and let everything else bubble up with `return Err(e.into())`. This prevents accidental silent swallowing of unexpected errors while still giving you precise control over the cases you expect.
+</Tip>
+
+## Common error types
+
+These variants appear across multiple methods on `PublicClient`. Understanding when each is triggered helps you decide which ones to retry and which require user-facing feedback.
+
+| Error type | When it occurs |
+|---|---|
+| `UserInputError` | You passed an invalid token ID, a malformed address, or an out-of-range pagination parameter |
+| `TransportError` | A network failure, DNS resolution error, or TLS handshake problem prevented the request from completing |
+| `RateLimitError` | Polymarket's API returned HTTP 429 — you are sending requests faster than the upstream limit allows |
+| `RequestRejectedError` | The API returned a non-2xx status code that is not a rate limit — for example, 400 or 403 |
+| `UnexpectedResponseError` | The response body did not match the expected schema, or normalization of the data failed |
+
+`TransportError` and `RateLimitError` are generally safe to retry with backoff. `UserInputError` and `RequestRejectedError` indicate a problem with your request that retrying will not fix.
+
+## `SecureClient` errors
+
+Trading actions on `SecureClient` use their own per-method error enums — `PlaceOrderError`, `CancelOrderError`, and so on — but follow exactly the same `is_error` guard pattern:
+
+```rust
+use polymarket_client::{PlaceOrderError, SecureClient};
+
+match secure_client.place_order(order_args).await {
+    Ok(response) => {
+        println!("Order placed: {:?}", response);
+    }
+    Err(e) if PlaceOrderError::is_error(&e) => {
+        eprintln!("Order placement failed: {e}");
+    }
+    Err(e) => return Err(e.into()),
+}
+```
+
+The same logic applies to `CancelOrderError` and any other method-specific enum: import the type, use it as the guard, and let unexpected errors propagate.

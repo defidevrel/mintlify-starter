@@ -1,0 +1,87 @@
+---
+title: "Hybrid Server Example: Axum HTTP Adapter for Polymarket"
+sidebarTitle: "Hybrid Server"
+description: "Run the hybrid_server Axum example to expose a REST API over polymarket-client, bridging any HTTP client to Polymarket's CLOB and order book."
+---
+
+The `hybrid_server` example ships inside the `polymarket-client` crate as a minimal [Axum](https://github.com/tokio-rs/axum) REST API. It wraps the SDK's public and secure clients behind four HTTP endpoints, giving any front-end — a Solana app, a browser, a mobile client, or another service — a simple JSON interface to Polymarket's order book and order placement without that client needing to know anything about Polygon or the CLOB protocol. You can start it in two modes: read-only (no credentials needed) or with live order placement enabled via environment variables.
+
+## Running the server
+
+### Read-only mode
+
+Use this to browse markets and order books without any private key. No environment variables are required.
+
+```bash
+cargo run -p polymarket-client --example hybrid_server --features secure
+```
+
+The server starts on `http://127.0.0.1:8080`. All endpoints except `POST /v1/orders` are fully functional in this mode.
+
+### With live order placement
+
+Set your Polygon private key and opt-in flag to unlock the `POST /v1/orders` endpoint.
+
+```bash
+POLYMARKET_PRIVATE_KEY=0x… POLYMARKET_PLACE_ORDER=1 \
+  cargo run -p polymarket-client --example hybrid_server --features secure
+```
+
+`POLYMARKET_PLACE_ORDER=1` is an explicit opt-in so you cannot accidentally place live orders without knowing it.
+
+## Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/health` | Returns server status and the connected Polygon wallet address |
+| `GET` | `/v1/markets` | Lists open markets; accepts an optional `?limit=N` query param |
+| `GET` | `/v1/book/{token_id}` | Fetches the current order book for a given outcome token |
+| `POST` | `/v1/orders` | Places a limit order (requires private key + `POLYMARKET_PLACE_ORDER=1`) |
+
+## Example requests
+
+### Health check
+
+```bash
+curl http://127.0.0.1:8080/health
+```
+
+### List markets
+
+```bash
+curl 'http://127.0.0.1:8080/v1/markets?limit=3'
+```
+
+<Tip>
+In zsh, always quote URLs that contain a `?` character: `'http://127.0.0.1:8080/v1/markets?limit=3'`. Without the quotes, zsh interprets `?` as a glob pattern and the request will fail before it reaches curl.
+</Tip>
+
+### Fetch an order book
+
+```bash
+curl 'http://127.0.0.1:8080/v1/book/TOKEN_ID'
+```
+
+Replace `TOKEN_ID` with the outcome token ID from a market returned by `/v1/markets`.
+
+### Place a limit order
+
+```bash
+curl -X POST http://127.0.0.1:8080/v1/orders \
+  -H 'Content-Type: application/json' \
+  -H 'X-Solana-Address: YOUR_SOLANA_PUBKEY' \
+  -d '{"token_id":"TOKEN_ID","side":"buy","price":0.01,"size":5.0,"post_only":true}'
+```
+
+## The `X-Solana-Address` header
+
+When your Solana front-end places an order through the hybrid server, include the user's Solana public key in the `X-Solana-Address` request header. This lets your backend correlate the Solana identity with the resulting Polygon fill — for example, to update a user's portfolio view or attribute fees correctly.
+
+<Warning>
+The example server only **logs** the `X-Solana-Address` header — it does not verify any signature. Before deploying to production, replace that log statement with real authentication: verify a Solana wallet signature against a challenge so you know the request genuinely came from the claimed address.
+</Warning>
+
+## Source code
+
+The full annotated implementation is available at:
+[`crates/polymarket-client/examples/hybrid_server.rs`](https://github.com/defidevrel/polymarket-rs-sdk/blob/main/crates/polymarket-client/examples/hybrid_server.rs)

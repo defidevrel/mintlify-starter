@@ -1,0 +1,63 @@
+---
+title: "Polymarket Rust SDK: Build on Prediction Markets"
+sidebarTitle: "Home"
+description: "polymarket-client is an open-source Rust SDK for Polymarket — market discovery, order books, trading, websockets, and Polygon settlement in one typed API."
+---
+
+`polymarket-client` gives you everything you need to build on [Polymarket](https://polymarket.com) in Rust: browse live prediction markets, stream real-time order books, place trades, and settle positions on Polygon — all behind a single, ergonomic async API.
+
+<CardGroup cols={2}>
+  <Card title="Introduction" icon="chart-line" href="/polymarket-sdk/introduction">
+    What the SDK covers and how to add it to your project
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/polymarket-sdk/quickstart">
+    List live markets and fetch an order book in minutes
+  </Card>
+  <Card title="Authentication" icon="key" href="/polymarket-sdk/authentication">
+    Set up your wallet and build a SecureClient for trading
+  </Card>
+  <Card title="Trading" icon="arrow-right-arrow-left" href="/polymarket-sdk/trading">
+    Place limit orders, cancel them, and settle CTF positions
+  </Card>
+  <Card title="Websockets" icon="bolt" href="/polymarket-sdk/websockets">
+    Subscribe to real-time market and user event streams
+  </Card>
+  <Card title="Hybrid Pattern" icon="layer-group" href="/polymarket-sdk/hybrid-architecture">
+    Bridge any front-end (including Solana) to Polygon settlement
+  </Card>
+</CardGroup>
+
+## Install
+
+Add `polymarket-client` to your `Cargo.toml`:
+
+<CodeGroup>
+
+```toml Cargo.toml (read-only)
+[dependencies]
+polymarket-client = "0.1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+```toml Cargo.toml (trading + websockets)
+[dependencies]
+polymarket-client = { version = "0.1", features = ["secure"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+</CodeGroup>
+
+<Steps>
+  <Step title="Add the crate">
+    Add `polymarket-client` to `Cargo.toml` with the features you need (see [Feature Flags](/polymarket-sdk/feature-flags)).
+  </Step>
+  <Step title="Browse markets">
+    Use `PublicClient` to list open markets and fetch order books — no credentials required.
+  </Step>
+  <Step title="Authenticate for trading">
+    Build a `SecureClient` with your Polygon wallet private key to place and manage orders.
+  </Step>
+  <Step title="Stream real-time data">
+    Call `subscribe()` on either client to open a websocket channel and receive live market events.
+  </Step>
+</Steps>

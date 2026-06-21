@@ -1,0 +1,86 @@
+---
+title: "Read Account Data and Positions with polymarket-client"
+sidebarTitle: "Account Data"
+description: "Fetch positions, trades, notifications, and rewards for any Polymarket wallet using PublicClient or SecureClient with the account or secure feature."
+---
+
+The Polymarket Data API exposes portfolio positions, historical trades, platform notifications, order scoring, and rewards for any wallet address. Some of those endpoints are fully public — you can query them without signing a single request — while others are gated behind authentication and return data scoped to your own wallet. This page shows you how to enable the right feature, choose the right client, and call each endpoint.
+
+## Enable the `account` feature
+
+Account data methods live behind the `account` feature flag. Add it to your `Cargo.toml`:
+
+```toml
+polymarket-client = { version = "0.1", features = ["account"] }
+```
+
+If you already have `features = ["secure"]`, you are covered — `secure` pulls in `account` automatically and you do not need to list both.
+
+<Tip>
+  `PublicClient.list_positions` works for **any wallet address** and requires no authentication at all. You can query positions for an arbitrary wallet by passing its address in `ListPositionsRequest` — no private key or API credentials needed.
+</Tip>
+
+## Read positions with `PublicClient`
+
+`PublicClient` is a lightweight, unauthenticated client. Use it to read positions for any address without managing credentials:
+
+```rust
+use polymarket_client::{ListPositionsRequest, PublicClient, Environment};
+
+let client = PublicClient::new(Environment::production());
+
+let mut positions = client.list_positions(ListPositionsRequest {
+    user: "0x56687bf447db6ffa42ffe2204a05edaa20f55839".into(),
+    page_size: Some(10),
+    ..Default::default()
+})?;
+
+let page = positions.first_page().await?;
+```
+
+The response is paginated. Call `.first_page()` to fetch the first batch of results, then use the returned cursor to page through the rest if needed.
+
+## Read account data with `SecureClient`
+
+When you need data that is scoped to your own authenticated wallet, use `SecureClient`. The following methods are available once you have a built `SecureClient` instance:
+
+### `list_account_trades`
+
+Returns your historical fills — every order that has been matched — across all markets. Useful for building a trading journal or computing realised P&L.
+
+### `fetch_notifications`
+
+Retrieves platform notifications for your wallet, such as market resolution alerts and reward announcements.
+
+### `fetch_order_scoring`
+
+Returns the order scoring metrics for your open and recently closed orders. Polymarket uses a scoring system to measure maker quality; this endpoint exposes your current scores.
+
+### `list_current_rewards`
+
+Lists the liquidity rewards you have accrued in the current rewards epoch. Rewards are denominated in USDC and distributed periodically to qualifying makers.
+
+```rust
+let trades        = secure.list_account_trades().await?;
+let notifications = secure.fetch_notifications().await?;
+let scoring       = secure.fetch_order_scoring().await?;
+let rewards       = secure.list_current_rewards().await?;
+```
+
+`SecureClient` automatically injects your wallet address and HMAC signature into each request, so you never need to pass the address manually.
+
+## Run the account example
+
+The SDK ships a ready-to-run account example that exercises all of the above methods:
+
+```bash
+cargo run -p polymarket-client --example account --features secure
+```
+
+Set `POLYMARKET_PRIVATE_KEY` before running so that `SecureClient` can authenticate:
+
+```bash
+POLYMARKET_PRIVATE_KEY=0x… cargo run -p polymarket-client --example account --features secure
+```
+
+The example prints positions, recent trades, notifications, scoring, and rewards to stdout, giving you a quick end-to-end verification that your credentials are working correctly.
