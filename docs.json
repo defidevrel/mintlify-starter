@@ -8,14 +8,14 @@
     "light": "#3B82F6",
     "dark": "#0F172A"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/favicon.png",
   "appearance": {
     "default": "light",
     "strict": true
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg",
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png",
     "href": "/"
   },
   "navigation": {
